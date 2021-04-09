@@ -17,13 +17,13 @@ using cloud images provided by CentOS.
 You'll need an S3 bucket to hold raw disk images that are used by the snapshot
 creation process.
 
-To create a bucket, use the following (this example assumes the `us-west-2`
+To create a bucket, use the following (this example assumes the `cn-northwest-1`
 region):
 
 ```
 ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
 BUCKET_NAME="${ACCOUNT}-vm-imports"
-BUCKET_REGION="us-west-2"
+BUCKET_REGION="cn-northwest-1"
 
 aws s3api create-bucket \
     --bucket ${BUCKET_NAME} \
@@ -62,10 +62,10 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
   ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
   BUCKET_NAME="${ACCOUNT}-vm-imports"
 
-  IMAGE_URL="http://cloud.centos.org/centos/8/x86_64/images/CentOS-8-ec2-8.1.1911-20200113.3.x86_64.qcow2"
-  IMAGE_FILE="CentOS-8-ec2-8.1.1911-20200113.3.x86_64.qcow2"
-  IMAGE_ID="CentOS-8-ec2-8.1.1911-20200113.3"
-  IMAGE_DESCRIPTION="CentOS 8 ec2 8.1.1911 20200113.3"
+  IMAGE_URL="https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-ec2-8.3.2011-20201204.2.x86_64.qcow2"
+  IMAGE_FILE="CentOS-8-ec2-8.3.2011-20201204.2.x86_64.qcow2"
+  IMAGE_ID="CentOS-8-ec2-8.3.2011-20201204.2"
+  IMAGE_DESCRIPTION="CentOS 8 ec2 8.3.2011 20201204.2 x86_64"
   ```
 
 * Download the image provided by CentOS:
@@ -85,7 +85,7 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
   This step requires root level permissions.
 
   ```
-  IMAGE_ID="CentOS-8-ec2-8.1.1911-20200113.3"
+  IMAGE_ID="CentOS-8-ec2-8.3.2011-20201204.2"
 
   mount -o loop,offset=1048576 ${IMAGE_ID}.raw /mnt
   mount -o bind /dev /mnt/dev
@@ -94,7 +94,7 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
   mount -t tmpfs tmpfs /mnt/run
 
   chroot /mnt
-  dracut -f /boot/initramfs-4.18.0-147.3.1.el8_1.x86_64.img 4.18.0-147.3.1.el8_1.x86_64
+  dracut -f /boot/initramfs-4.18.0-240.1.1.el8_3.x86_64.img 4.18.0-240.1.1.el8_3.x86_64
   # Run any other customizations here
   exit
 
@@ -124,7 +124,7 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
   ImportTaskId (substitute the example below with your task ID):
 
   ```
-  TASK_ID=import-snap-087cd7311afba675f
+  TASK_ID=import-snap-0b1cd90f3702b0730
   ```
 
 * Wait for snapshot completion:
@@ -140,45 +140,47 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
 
   ```
   {
-      "ImportSnapshotTasks": [
-          {
-              "SnapshotTaskDetail": {
-                  "Status": "active", 
-                  "Format": "RAW", 
-                  "DiskImageSize": 0.0, 
-                  "UserBucket": {
-                      "S3Bucket": "123456789012-vm-imports", 
-                      "S3Key": "CentOS-8-ec2-8.1.1911-20200113.3.raw"
-                  }, 
-                  "Progress": "2", 
-                  "StatusMessage": "pending"
-              }, 
-              "ImportTaskId": "import-snap-087cd7311afba675f"
-          }
-      ]
+    "ImportSnapshotTasks": [
+        {
+            "SnapshotTaskDetail": {
+                "Status": "active",
+                "Format": "RAW",
+                "DiskImageSize": 10737418240.0,
+                "UserBucket": {
+                    "S3Bucket": "969531696194-vm-imports",
+                    "S3Key": "CentOS-8-ec2-8.3.2011-20201204.2.raw"
+                },
+                "Progress": "43",
+                "StatusMessage": "downloading/converting"
+            },
+            "Tags": [],
+            "ImportTaskId": "import-snap-0b1cd90f3702b0730"
+        }
+    ]
   }
   ```
 
   When it's complete, you'll see output with a Status of **completed**:
 
   ```
-  {
-      "ImportSnapshotTasks": [
-          {
-              "SnapshotTaskDetail": {
-                  "Status": "completed", 
-                  "SnapshotId": "snap-0fecb321718c3dcd9", 
-                  "DiskImageSize": 10737418240.0, 
-                  "UserBucket": {
-                      "S3Bucket": "123456789012-vm-imports", 
-                      "S3Key": "CentOS-8-ec2-8.1.1911-20200113.3.raw"
-                  }, 
-                  "Format": "RAW"
-              }, 
-              "ImportTaskId": "import-snap-087cd7311afba675f"
-          }
-      ]
-  }
+	{
+		"ImportSnapshotTasks": [
+			{
+				"SnapshotTaskDetail": {
+					"Status": "completed",
+					"SnapshotId": "snap-0ccd96ea0b9cf539d",
+					"DiskImageSize": 10737418240.0,
+					"UserBucket": {
+						"S3Bucket": "969531696194-vm-imports",
+						"S3Key": "CentOS-8-ec2-8.3.2011-20201204.2.raw"
+					},
+					"Format": "RAW"
+				},
+				"Tags": [],
+				"ImportTaskId": "import-snap-0b1cd90f3702b0730"
+			}
+		]
+	}  
   ```
 
 ## Register an AMI
@@ -187,7 +189,7 @@ aws iam put-role-policy --role-name vmimport --policy-name vmimport --policy-doc
 
   ```
   # Substitute the snapshot ID using the output from the previous step
-  SNAPSHOT_ID=snap-0fecb321718c3dcd9
+  SNAPSHOT_ID=snap-0ccd96ea0b9cf539d
 
   SNAPSHOT_SIZE=$(aws ec2 describe-snapshots --snapshot-ids ${SNAPSHOT_ID} --query Snapshots[].VolumeSize --output text)
   ```
